@@ -14,6 +14,9 @@
 #include <getopt.h>
 
 #include "hidapi.h"
+#ifdef __APPLE__
+#include "hidapi_darwin.h"
+#endif
 
 
 #define MAX_STR 1024  // for manufacturer, product strings
@@ -245,6 +248,14 @@ int main(int argc, char* argv[])
     unsigned char descriptorBuf[HID_API_MAX_REPORT_DESCRIPTOR_SIZE];
 
     setbuf(stdout, NULL);  // turn off buffering of stdout
+
+#ifdef __APPLE__
+    // hidapi's macOS backend seizes devices on open by default, which
+    // requires root for keyboards and stops mice from moving the cursor.
+    // hid_init() resets this option, so init explicitly before changing it.
+    hid_init();
+    hid_darwin_set_open_exclusive(0);
+#endif
 
     if(argc < 2){
         print_usage( "hidapitester" );
