@@ -252,12 +252,6 @@ int main(int argc, char* argv[])
 
     setbuf(stdout, NULL);  // turn off buffering of stdout
 
-    // init explicitly, since on macOS hid_init() resets the --nonexclusive setting
-    if (hid_init() != 0){
-        printf("Failed to initialize HIDAPI: %ls\n", hid_error(NULL));
-        exit(1);
-    }
-
     if(argc < 2){
         print_usage( "hidapitester" );
         exit(1);
@@ -346,6 +340,11 @@ int main(int argc, char* argv[])
 #if defined(__APPLE__)
                 // hidapi's macOS backend seizes devices on open by default, which
                 // requires root for keyboards and stops mice from moving the cursor.
+                // Init explicitly first, since the first hid_init() resets this setting.
+                if (hid_init() != 0){
+                    printf("Failed to initialize HIDAPI: %ls\n", hid_error(NULL));
+                    exit(1);
+                }
                 hid_darwin_set_open_exclusive(0);
                 msginfo("Set open mode to non-exclusive\n");
 #elif defined(_WIN32) || (defined(__linux__) && !defined(__ANDROID__))
