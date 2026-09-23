@@ -249,11 +249,14 @@ int main(int argc, char* argv[])
 
     setbuf(stdout, NULL);  // turn off buffering of stdout
 
+    if (hid_init() != 0){
+        printf("Failed to initialize HIDAPI: %ls\n", hid_error(NULL));
+        exit(1);
+    }
+
 #ifdef __APPLE__
     // hidapi's macOS backend seizes devices on open by default, which
     // requires root for keyboards and stops mice from moving the cursor.
-    // hid_init() resets this option, so init explicitly before changing it.
-    hid_init();
     hid_darwin_set_open_exclusive(0);
 #endif
 
