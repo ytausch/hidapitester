@@ -128,6 +128,18 @@ int print_width = 32; // how many characters per line
 #endif
 
 /**
+ * Initialize HIDAPI, exiting on failure. Safe to call multiple times.
+ * Called lazily so commands like --version work without USB access.
+ */
+static void init_hidapi(void)
+{
+    if (hid_init() != 0) {
+        fprintf(stderr, "Failed to initialize HIDAPI: %ls\n", hid_error(NULL));
+        exit(1);
+    }
+}
+
+/**
  * printf that can be shut up
  */
 void msg(char* fmt, ...)
@@ -305,6 +317,11 @@ int main(int argc, char* argv[])
         switch(opt) {
         case 0:                   // long opts with no short opts
 
+            // --version is the only command that doesn't need hidapi
+            if( cmd != CMD_VERSION ) {
+                init_hidapi();
+            }
+
             if( cmd == CMD_VIDPID ) {
 
                 if( sscanf(optarg, "%6hx/%6hx", &vid,&pid) !=2 ) {  // match "23FE/AB12" or "0x23FE/0xAB12"
@@ -340,11 +357,7 @@ int main(int argc, char* argv[])
 #if defined(__APPLE__)
                 // hidapi's macOS backend seizes devices on open by default, which
                 // requires root for keyboards and stops mice from moving the cursor.
-                // Init explicitly first, since the first hid_init() resets this setting.
-                if (hid_init() != 0){
-                    printf("Failed to initialize HIDAPI: %ls\n", hid_error(NULL));
-                    exit(1);
-                }
+                // (hidapi is already initialized above, so this won't be reset)
                 hid_darwin_set_open_exclusive(0);
                 msginfo("Set open mode to non-exclusive\n");
 #elif defined(_WIN32) || (defined(__linux__) && !defined(__ANDROID__))
